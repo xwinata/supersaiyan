@@ -1,0 +1,11 @@
+version: "2"
+
+run:
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+  disable:
+    - errcheck
