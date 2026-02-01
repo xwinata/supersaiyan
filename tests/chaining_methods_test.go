@@ -757,15 +757,10 @@ func TestFieldHelpers(t *testing.T) {
 	})
 
 	t.Run("Exp creates expression field with CASE", func(t *testing.T) {
-		caseExpr := supersaiyan.Case{
-			Conditions: []supersaiyan.WhenThen{
-				{
-					When: supersaiyan.Eq("status", "u", "active"),
-					Then: "Active",
-				},
-			},
-			Else: "Unknown",
-		}
+		caseExpr := supersaiyan.C(
+			"Unknown",
+			supersaiyan.WT(supersaiyan.Eq("status", "u", "active"), "Active"),
+		)
 
 		field := supersaiyan.Exp("status_label", caseExpr)
 
@@ -774,13 +769,11 @@ func TestFieldHelpers(t *testing.T) {
 	})
 
 	t.Run("Exp creates expression field with COALESCE", func(t *testing.T) {
-		coalesceExpr := supersaiyan.Coalesce{
-			Fields: []supersaiyan.Field{
-				supersaiyan.F("nickname", supersaiyan.WithTable("u")),
-				supersaiyan.F("username", supersaiyan.WithTable("u")),
-			},
-			DefaultValue: "Anonymous",
-		}
+		coalesceExpr := supersaiyan.Coal(
+			nil,
+			supersaiyan.F("nickname", supersaiyan.WithTable("u")),
+			supersaiyan.F("username", supersaiyan.WithTable("u")),
+		)
 
 		field := supersaiyan.Exp("display_name", coalesceExpr)
 
@@ -818,6 +811,57 @@ func TestFieldHelpers(t *testing.T) {
 		assert.Len(t, literal.Args, 2)
 		assert.Equal(t, 10, literal.Args[0])
 		assert.Equal(t, 20, literal.Args[1])
+	})
+
+	t.Run("Coal creates COALESCE without default", func(t *testing.T) {
+		coalesce := supersaiyan.Coal(
+			nil,
+			supersaiyan.F("nickname", supersaiyan.WithTable("u")),
+			supersaiyan.F("username", supersaiyan.WithTable("u")),
+		)
+
+		assert.Len(t, coalesce.Fields, 2)
+		assert.Nil(t, coalesce.DefaultValue)
+	})
+
+	t.Run("Coal creates COALESCE with default", func(t *testing.T) {
+		coalesce := supersaiyan.Coal(
+			"Anonymous",
+			supersaiyan.F("nickname", supersaiyan.WithTable("u")),
+			supersaiyan.F("username", supersaiyan.WithTable("u")),
+		)
+
+		assert.Len(t, coalesce.Fields, 2)
+		assert.Equal(t, "Anonymous", coalesce.DefaultValue)
+	})
+
+	t.Run("WT creates WhenThen condition", func(t *testing.T) {
+		when := supersaiyan.WT(supersaiyan.Eq("status", "u", "active"), "Active")
+
+		assert.NotNil(t, when.When)
+		assert.Equal(t, "Active", when.Then)
+	})
+
+	t.Run("C creates CASE without else", func(t *testing.T) {
+		caseExpr := supersaiyan.C(
+			nil,
+			supersaiyan.WT(supersaiyan.Eq("status", "u", "active"), "Active"),
+			supersaiyan.WT(supersaiyan.Eq("status", "u", "inactive"), "Inactive"),
+		)
+
+		assert.Len(t, caseExpr.Conditions, 2)
+		assert.Nil(t, caseExpr.Else)
+	})
+
+	t.Run("C creates CASE with else", func(t *testing.T) {
+		caseExpr := supersaiyan.C(
+			"Unknown",
+			supersaiyan.WT(supersaiyan.Eq("status", "u", "active"), "Active"),
+			supersaiyan.WT(supersaiyan.Eq("status", "u", "inactive"), "Inactive"),
+		)
+
+		assert.Len(t, caseExpr.Conditions, 2)
+		assert.Equal(t, "Unknown", caseExpr.Else)
 	})
 }
 
@@ -858,19 +902,11 @@ func TestFieldHelpersInQueries(t *testing.T) {
 			WithFields(
 				supersaiyan.F("id", supersaiyan.WithTable("u")),
 				supersaiyan.F("username", supersaiyan.WithTable("u")),
-				supersaiyan.Exp("status_label", supersaiyan.Case{
-					Conditions: []supersaiyan.WhenThen{
-						{
-							When: supersaiyan.Eq("status", "u", "active"),
-							Then: "Active User",
-						},
-						{
-							When: supersaiyan.Eq("status", "u", "inactive"),
-							Then: "Inactive User",
-						},
-					},
-					Else: "Unknown",
-				}),
+				supersaiyan.Exp("status_label", supersaiyan.C(
+					"Unknown",
+					supersaiyan.WT(supersaiyan.Eq("status", "u", "active"), "Active User"),
+					supersaiyan.WT(supersaiyan.Eq("status", "u", "inactive"), "Inactive User"),
+				)),
 			).
 			Limit(0)
 
@@ -885,14 +921,12 @@ func TestFieldHelpersInQueries(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
 			WithFields(
 				supersaiyan.F("id", supersaiyan.WithTable("u")),
-				supersaiyan.Exp("display_name", supersaiyan.Coalesce{
-					Fields: []supersaiyan.Field{
-						supersaiyan.F("nickname", supersaiyan.WithTable("u")),
-						supersaiyan.F("username", supersaiyan.WithTable("u")),
-						supersaiyan.F("email", supersaiyan.WithTable("u")),
-					},
-					DefaultValue: "Anonymous",
-				}),
+				supersaiyan.Exp("display_name", supersaiyan.Coal(
+					"Anonymous",
+					supersaiyan.F("nickname", supersaiyan.WithTable("u")),
+					supersaiyan.F("username", supersaiyan.WithTable("u")),
+					supersaiyan.F("email", supersaiyan.WithTable("u")),
+				)),
 			).
 			Limit(0)
 

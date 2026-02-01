@@ -110,3 +110,28 @@ func (c *Case) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
+// WT creates a WhenThen condition for use in Case expressions.
+//
+// Examples:
+//   WT(Eq("status", "u", "active"), "Active")
+//   WT(Gt("age", "u", 18), "Adult")
+func WT(condition any, thenValue any) WhenThen {
+	return WhenThen{
+		When: condition,
+		Then: thenValue,
+	}
+}
+
+// C creates a CASE expression with WHEN/THEN conditions and optional ELSE value.
+//
+// Examples:
+//   C(nil, WT(Eq("status", "u", "active"), "Active"), WT(Eq("status", "u", "inactive"), "Inactive"))
+//   C("Unknown", WT(Eq("status", "u", "active"), "Active"), WT(Eq("status", "u", "inactive"), "Inactive"))
+//   C("Adult", WT(Lt("age", "u", 18), "Minor"))
+func C(elseValue any, conditions ...WhenThen) Case {
+	return Case{
+		Conditions: conditions,
+		Else:       elseValue,
+	}
+}
