@@ -1,0 +1,125 @@
+dialect: mysql
+table:
+  name: users
+  alias: u
+  relations:
+    - joinType: INNER
+      table:
+        name: orders
+        alias: o
+      on:
+        - op: eq
+          fieldName: user_id
+          tableAlias: o
+          value:
+            name: id
+            tableAlias: u
+    - joinType: LEFT
+      table:
+        name: profiles
+        alias: p
+      on:
+        - op: eq
+          fieldName: user_id
+          tableAlias: p
+          value:
+            name: id
+            tableAlias: u
+
+fields:
+  - name: id
+    tableAlias: u
+  - name: username
+    tableAlias: u
+  - name: email
+    tableAlias: u
+  - fieldAlias: order_count
+    exp:
+      value: COUNT(?)
+      args:
+        - name: id
+          tableAlias: o
+  - fieldAlias: total_spent
+    exp:
+      value: SUM(?)
+      args:
+        - name: amount
+          tableAlias: o
+  - fieldAlias: status_label
+    exp:
+      conditions:
+        - when:
+            op: eq
+            fieldName: status
+            tableAlias: u
+            value: active
+          then: Active User
+        - when:
+            op: eq
+            fieldName: status
+            tableAlias: u
+            value: inactive
+          then: Inactive User
+      else: Unknown
+
+wheres:
+  - op: eq
+    fieldName: status
+    tableAlias: u
+    value: active
+  - op: gt
+    fieldName: age
+    tableAlias: u
+    value: 18
+  - op: OR
+    conditions:
+      - op: like
+        fieldName: email
+        tableAlias: u
+        value: "%@gmail.com"
+      - op: like
+        fieldName: email
+        tableAlias: u
+        value: "%@yahoo.com"
+  - op: in
+    fieldName: country
+    tableAlias: u
+    value:
+      - USA
+      - Canada
+      - UK
+  - op: between
+    fieldName: created_at
+    tableAlias: u
+    start: "2024-01-01"
+    end: "2024-12-31"
+  - op: AND
+    conditions:
+      - op: neq
+        fieldName: deleted_at
+        tableAlias: u
+        value: null
+      - op: OR
+        conditions:
+          - op: eq
+            fieldName: role
+            tableAlias: u
+            value: admin
+          - op: eq
+            fieldName: role
+            tableAlias: u
+            value: moderator
+
+sorts:
+  - name: created_at
+    tableAlias: u
+    order: DESC
+  - name: username
+    tableAlias: u
+    order: ASC
+
+groupBy:
+  - name: id
+    tableAlias: u
+  - name: username
+    tableAlias: u
