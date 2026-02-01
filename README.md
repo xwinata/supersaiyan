@@ -13,7 +13,6 @@ A powerful, type-safe SQL query builder for Go that extends [goqu](https://githu
 - 🎯 **Multiple Dialects** - Support for MySQL, PostgreSQL, SQLite, and SQL Server
 - 🔗 **Complex Queries** - Joins, subqueries, aggregations, CASE expressions, and more
 - ⚡ **Built on goqu** - Extends the battle-tested goqu library
-- ✅ **Well Tested** - 72%+ test coverage with 250+ test cases
 
 ## Installation
 
@@ -313,25 +312,6 @@ _, _, err = qb.Delete()
 See the [examples/](examples/) directory for comprehensive examples:
 
 - [examples.go](examples/examples.go) - Complete examples covering all features including field helpers, expressions, CASE, COALESCE, joins, aggregations, and more
-
-## Testing
-
-```bash
-# Run all tests
-go test ./tests/...
-
-# Run with coverage
-go test ./tests/... -coverprofile=coverage.out
-go tool cover -html=coverage.out
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-[Add your license here]
 
 ## Credits
 
