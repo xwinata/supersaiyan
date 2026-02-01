@@ -52,3 +52,19 @@ func (l *Literal) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
+// L creates a Literal expression with optional arguments.
+// This is a convenience function for creating raw SQL expressions.
+//
+// Examples:
+//   L("COUNT(*)")                                    // Simple literal without args
+//   L("COUNT(?)", F("id", WithTable("o")))          // Literal with field arg
+//   L("SUM(?)", F("amount", WithTable("o")))        // Literal with field arg
+//   L("CONCAT(?, ' ', ?)", "Hello", "World")        // Literal with string args
+//   L("? + ?", 10, 20)                              // Literal with numeric args
+func L(value string, args ...any) Literal {
+	return Literal{
+		Value: value,
+		Args:  args,
+	}
+}

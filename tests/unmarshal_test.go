@@ -741,10 +741,7 @@ func TestMarshal_SQLBuilder(t *testing.T) {
 		original := supersaiyan.New("mysql", "orders", "o").
 			WithFields(supersaiyan.Field{
 				FieldAlias: "total",
-				Exp: supersaiyan.Literal{
-					Value: "SUM(?)",
-					Args:  []any{supersaiyan.F("amount", supersaiyan.WithTable("o"))},
-				},
+				Exp:        supersaiyan.L("SUM(?)", supersaiyan.F("amount", supersaiyan.WithTable("o"))),
 			}).
 			Limit(0)
 

@@ -50,10 +50,7 @@ func example2() {
 	qb := supersaiyan.New("mysql", "orders", "o").
 		WithFields(
 			supersaiyan.F("user_id", supersaiyan.WithTable("o")),
-			supersaiyan.Exp("order_count", supersaiyan.Literal{
-				Value: "COUNT(?)",
-				Args:  []any{supersaiyan.F("id", supersaiyan.WithTable("o"))},
-			}),
+			supersaiyan.Exp("order_count", supersaiyan.L("COUNT(?)", supersaiyan.F("id", supersaiyan.WithTable("o")))),
 		).
 		GroupByFields(supersaiyan.F("user_id", supersaiyan.WithTable("o"))).
 		Limit(0)
@@ -71,18 +68,9 @@ func example3() {
 		WithFields(
 			supersaiyan.F("user_id", supersaiyan.WithTable("o")),
 			supersaiyan.F("status", supersaiyan.WithTable("o")),
-			supersaiyan.Exp("order_count", supersaiyan.Literal{
-				Value: "COUNT(?)",
-				Args:  []any{supersaiyan.F("id", supersaiyan.WithTable("o"))},
-			}),
-			supersaiyan.Exp("total_amount", supersaiyan.Literal{
-				Value: "SUM(?)",
-				Args:  []any{supersaiyan.F("amount", supersaiyan.WithTable("o"))},
-			}),
-			supersaiyan.Exp("avg_amount", supersaiyan.Literal{
-				Value: "AVG(?)",
-				Args:  []any{supersaiyan.F("amount", supersaiyan.WithTable("o"))},
-			}),
+			supersaiyan.Exp("order_count", supersaiyan.L("COUNT(?)", supersaiyan.F("id", supersaiyan.WithTable("o")))),
+			supersaiyan.Exp("total_amount", supersaiyan.L("SUM(?)", supersaiyan.F("amount", supersaiyan.WithTable("o")))),
+			supersaiyan.Exp("avg_amount", supersaiyan.L("AVG(?)", supersaiyan.F("amount", supersaiyan.WithTable("o")))),
 		).
 		Where(supersaiyan.Eq("status", "o", "completed")).
 		GroupByFields(

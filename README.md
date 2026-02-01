@@ -202,14 +202,27 @@ F("created_at", WithTable("u"), WithAlias("reg_date"))
 F("username", WithAlias("user_name"))
 ```
 
+The `L()` function creates Literal expressions for raw SQL:
+
+```go
+// Simple literal without args
+L("COUNT(*)")
+
+// Literal with field arg
+L("COUNT(?)", F("id", WithTable("o")))
+
+// Literal with multiple args
+L("CONCAT(?, ' ', ?)", "Hello", "World")
+
+// Literal with numeric args
+L("? + ?", 10, 20)
+```
+
 The `Exp()` function creates expression/computed fields (aggregations, CASE, COALESCE, etc.):
 
 ```go
-// Aggregation
-Exp("order_count", Literal{
-    Value: "COUNT(?)",
-    Args:  []any{F("id", "o")},
-})
+// Aggregation using L() helper
+Exp("order_count", L("COUNT(?)", F("id", WithTable("o"))))
 
 // CASE expression
 Exp("status_label", Case{

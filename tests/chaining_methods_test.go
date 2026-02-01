@@ -741,10 +741,7 @@ func TestFieldHelpers(t *testing.T) {
 	})
 
 	t.Run("Exp creates expression field with COUNT", func(t *testing.T) {
-		field := supersaiyan.Exp("order_count", supersaiyan.Literal{
-			Value: "COUNT(?)",
-			Args:  []any{supersaiyan.F("id", supersaiyan.WithTable("o"))},
-		})
+		field := supersaiyan.Exp("order_count", supersaiyan.L("COUNT(?)", supersaiyan.F("id", supersaiyan.WithTable("o"))))
 
 		assert.Empty(t, field.Name)
 		assert.Empty(t, field.TableAlias)
@@ -753,10 +750,7 @@ func TestFieldHelpers(t *testing.T) {
 	})
 
 	t.Run("Exp creates expression field with SUM", func(t *testing.T) {
-		field := supersaiyan.Exp("total_amount", supersaiyan.Literal{
-			Value: "SUM(?)",
-			Args:  []any{supersaiyan.F("amount", supersaiyan.WithTable("o"))},
-		})
+		field := supersaiyan.Exp("total_amount", supersaiyan.L("SUM(?)", supersaiyan.F("amount", supersaiyan.WithTable("o"))))
 
 		assert.Equal(t, "total_amount", field.FieldAlias)
 		assert.NotNil(t, field.Exp)
@@ -793,6 +787,38 @@ func TestFieldHelpers(t *testing.T) {
 		assert.Equal(t, "display_name", field.FieldAlias)
 		assert.NotNil(t, field.Exp)
 	})
+
+	t.Run("L creates simple literal without args", func(t *testing.T) {
+		literal := supersaiyan.L("COUNT(*)")
+
+		assert.Equal(t, "COUNT(*)", literal.Value)
+		assert.Empty(t, literal.Args)
+	})
+
+	t.Run("L creates literal with field arg", func(t *testing.T) {
+		literal := supersaiyan.L("COUNT(?)", supersaiyan.F("id", supersaiyan.WithTable("o")))
+
+		assert.Equal(t, "COUNT(?)", literal.Value)
+		assert.Len(t, literal.Args, 1)
+	})
+
+	t.Run("L creates literal with multiple args", func(t *testing.T) {
+		literal := supersaiyan.L("CONCAT(?, ' ', ?)", "Hello", "World")
+
+		assert.Equal(t, "CONCAT(?, ' ', ?)", literal.Value)
+		assert.Len(t, literal.Args, 2)
+		assert.Equal(t, "Hello", literal.Args[0])
+		assert.Equal(t, "World", literal.Args[1])
+	})
+
+	t.Run("L creates literal with numeric args", func(t *testing.T) {
+		literal := supersaiyan.L("? + ?", 10, 20)
+
+		assert.Equal(t, "? + ?", literal.Value)
+		assert.Len(t, literal.Args, 2)
+		assert.Equal(t, 10, literal.Args[0])
+		assert.Equal(t, 20, literal.Args[1])
+	})
 }
 
 // TestFieldHelpersInQueries tests F() and Exp() in actual queries
@@ -815,10 +841,7 @@ func TestFieldHelpersInQueries(t *testing.T) {
 		qb := supersaiyan.New("mysql", "orders", "o").
 			WithFields(
 				supersaiyan.F("user_id", supersaiyan.WithTable("o")),
-				supersaiyan.Exp("order_count", supersaiyan.Literal{
-					Value: "COUNT(?)",
-					Args:  []any{supersaiyan.F("id", supersaiyan.WithTable("o"))},
-				}),
+				supersaiyan.Exp("order_count", supersaiyan.L("COUNT(?)", supersaiyan.F("id", supersaiyan.WithTable("o")))),
 			).
 			GroupByFields(supersaiyan.F("user_id", supersaiyan.WithTable("o"))).
 			Limit(0)
@@ -884,18 +907,9 @@ func TestFieldHelpersInQueries(t *testing.T) {
 			WithFields(
 				supersaiyan.F("user_id", supersaiyan.WithTable("o")),
 				supersaiyan.F("status", supersaiyan.WithTable("o")),
-				supersaiyan.Exp("order_count", supersaiyan.Literal{
-					Value: "COUNT(?)",
-					Args:  []any{supersaiyan.F("id", supersaiyan.WithTable("o"))},
-				}),
-				supersaiyan.Exp("total_amount", supersaiyan.Literal{
-					Value: "SUM(?)",
-					Args:  []any{supersaiyan.F("amount", supersaiyan.WithTable("o"))},
-				}),
-				supersaiyan.Exp("avg_amount", supersaiyan.Literal{
-					Value: "AVG(?)",
-					Args:  []any{supersaiyan.F("amount", supersaiyan.WithTable("o"))},
-				}),
+				supersaiyan.Exp("order_count", supersaiyan.L("COUNT(?)", supersaiyan.F("id", supersaiyan.WithTable("o")))),
+				supersaiyan.Exp("total_amount", supersaiyan.L("SUM(?)", supersaiyan.F("amount", supersaiyan.WithTable("o")))),
+				supersaiyan.Exp("avg_amount", supersaiyan.L("AVG(?)", supersaiyan.F("amount", supersaiyan.WithTable("o")))),
 			).
 			Where(supersaiyan.Eq("status", "o", "completed")).
 			GroupByFields(
@@ -967,10 +981,7 @@ func TestFieldStructBackwardCompatibility(t *testing.T) {
 				},
 				supersaiyan.Field{
 					FieldAlias: "total",
-					Exp: supersaiyan.Literal{
-						Value: "SUM(?)",
-						Args:  []any{supersaiyan.F("amount", supersaiyan.WithTable("o"))},
-					},
+					Exp:        supersaiyan.L("SUM(?)", supersaiyan.F("amount", supersaiyan.WithTable("o"))),
 				},
 			).
 			GroupByFields(supersaiyan.F("user_id", supersaiyan.WithTable("o"))).
