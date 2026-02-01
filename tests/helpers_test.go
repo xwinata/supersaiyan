@@ -236,7 +236,7 @@ func TestSortHelpers(t *testing.T) {
 // TestFieldHelper tests field helper function
 func TestFieldHelper(t *testing.T) {
 	t.Run("F creates field reference", func(t *testing.T) {
-		field := supersaiyan.F("username", "u")
+		field := supersaiyan.F("username", supersaiyan.WithTable("u"))
 
 		assert.Equal(t, "username", field.Name)
 		assert.Equal(t, "u", field.TableAlias)
@@ -245,7 +245,7 @@ func TestFieldHelper(t *testing.T) {
 	})
 
 	t.Run("F without table alias", func(t *testing.T) {
-		field := supersaiyan.F("username", "")
+		field := supersaiyan.F("username")
 
 		assert.Equal(t, "username", field.Name)
 		assert.Empty(t, field.TableAlias)

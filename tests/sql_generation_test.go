@@ -13,7 +13,7 @@ import (
 func TestSelect(t *testing.T) {
 	t.Run("generates simple select", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
-			WithFields(supersaiyan.F("id", "u")).
+			WithFields(supersaiyan.Field{Name: "id", TableAlias: "u"}).
 			Limit(0)
 
 		sql, args, err := qb.Select()
@@ -26,7 +26,7 @@ func TestSelect(t *testing.T) {
 
 	t.Run("generates select with where", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
-			WithFields(supersaiyan.F("id", "u")).
+			WithFields(supersaiyan.Field{Name: "id", TableAlias: "u"}).
 			Where(supersaiyan.Eq("status", "u", "active")).
 			Limit(0)
 
@@ -40,10 +40,10 @@ func TestSelect(t *testing.T) {
 	t.Run("generates select with joins", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
 			WithFields(
-				supersaiyan.F("id", "u"),
-				supersaiyan.F("order_id", "o"),
+				supersaiyan.Field{Name: "id", TableAlias: "u"},
+				supersaiyan.Field{Name: "order_id", TableAlias: "o"},
 			).
-			InnerJoin("orders", "o", supersaiyan.Eq("user_id", "o", supersaiyan.F("id", "u"))).
+			InnerJoin("orders", "o", supersaiyan.Eq("user_id", "o", supersaiyan.Field{Name: "id", TableAlias: "u"})).
 			Limit(0)
 
 		sql, _, err := qb.Select()
@@ -53,7 +53,7 @@ func TestSelect(t *testing.T) {
 
 	t.Run("generates select with order by", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
-			WithFields(supersaiyan.F("id", "u")).
+			WithFields(supersaiyan.Field{Name: "id", TableAlias: "u"}).
 			OrderBy(supersaiyan.Desc("created_at", "u")).
 			Limit(0)
 
@@ -64,7 +64,7 @@ func TestSelect(t *testing.T) {
 
 	t.Run("generates select with limit and offset", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
-			WithFields(supersaiyan.F("id", "u")).
+			WithFields(supersaiyan.Field{Name: "id", TableAlias: "u"}).
 			Limit(25).
 			Offset(50)
 
@@ -79,16 +79,16 @@ func TestSelect(t *testing.T) {
 	t.Run("generates select with group by", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "orders", "o").
 			WithFields(
-				supersaiyan.F("user_id", "o"),
+				supersaiyan.Field{Name: "user_id", TableAlias: "o"},
 				supersaiyan.Field{
 					FieldAlias: "count",
 					Exp: supersaiyan.Literal{
 						Value: "COUNT(?)",
-						Args:  []any{supersaiyan.F("id", "o")},
+						Args:  []any{supersaiyan.Field{Name: "id", TableAlias: "o"}},
 					},
 				},
 			).
-			GroupByFields(supersaiyan.F("user_id", "o")).
+			GroupByFields(supersaiyan.Field{Name: "user_id", TableAlias: "o"}).
 			Limit(0)
 
 		sql, _, err := qb.Select()
@@ -98,7 +98,7 @@ func TestSelect(t *testing.T) {
 
 	t.Run("uses prepared statements", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
-			WithFields(supersaiyan.F("id", "u")).
+			WithFields(supersaiyan.Field{Name: "id", TableAlias: "u"}).
 			Where(supersaiyan.Eq("status", "u", "active")).
 			Limit(0)
 
@@ -124,7 +124,7 @@ func TestSelect(t *testing.T) {
 
 		for _, dialect := range dialects {
 			qb := supersaiyan.New(dialect, "users", "u").
-				WithFields(supersaiyan.F("id", "u")).
+				WithFields(supersaiyan.Field{Name: "id", TableAlias: "u"}).
 				Limit(0)
 
 			sql, _, err := qb.Select()
@@ -160,7 +160,7 @@ func TestCount(t *testing.T) {
 
 	t.Run("generates count with joins", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
-			InnerJoin("orders", "o", supersaiyan.Eq("user_id", "o", supersaiyan.F("id", "u"))).
+			InnerJoin("orders", "o", supersaiyan.Eq("user_id", "o", supersaiyan.Field{Name: "id", TableAlias: "u"})).
 			Where(supersaiyan.Eq("status", "o", "completed")).
 			Limit(0)
 

@@ -40,7 +40,7 @@ func TestNew(t *testing.T) {
 func TestWithFields(t *testing.T) {
 	t.Run("adds single field", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
-			WithFields(supersaiyan.F("id", "u")).
+			WithFields(supersaiyan.Field{Name: "id", TableAlias: "u"}).
 			Limit(0)
 
 		assert.Len(t, qb.Fields, 1)
@@ -55,9 +55,9 @@ func TestWithFields(t *testing.T) {
 	t.Run("adds multiple fields at once", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
 			WithFields(
-				supersaiyan.F("id", "u"),
-				supersaiyan.F("username", "u"),
-				supersaiyan.F("email", "u"),
+				supersaiyan.Field{Name: "id", TableAlias: "u"},
+				supersaiyan.Field{Name: "username", TableAlias: "u"},
+				supersaiyan.Field{Name: "email", TableAlias: "u"},
 			).
 			Limit(0)
 
@@ -72,9 +72,9 @@ func TestWithFields(t *testing.T) {
 
 	t.Run("chains multiple WithFields calls", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
-			WithFields(supersaiyan.F("id", "u")).
-			WithFields(supersaiyan.F("username", "u")).
-			WithFields(supersaiyan.F("email", "u")).
+			WithFields(supersaiyan.Field{Name: "id", TableAlias: "u"}).
+			WithFields(supersaiyan.Field{Name: "username", TableAlias: "u"}).
+			WithFields(supersaiyan.Field{Name: "email", TableAlias: "u"}).
 			Limit(0)
 
 		assert.Len(t, qb.Fields, 3)
@@ -101,7 +101,7 @@ func TestWithFields(t *testing.T) {
 				FieldAlias: "total",
 				Exp: supersaiyan.Literal{
 					Value: "SUM(?)",
-					Args:  []any{supersaiyan.F("amount", "o")},
+					Args:  []any{supersaiyan.Field{Name: "amount", TableAlias: "o"}},
 				},
 			}).
 			Limit(0)
@@ -254,16 +254,16 @@ func TestGroupByFields(t *testing.T) {
 	t.Run("adds single group by field", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "orders", "o").
 			WithFields(
-				supersaiyan.F("user_id", "o"),
+				supersaiyan.Field{Name: "user_id", TableAlias: "o"},
 				supersaiyan.Field{
 					FieldAlias: "total",
 					Exp: supersaiyan.Literal{
 						Value: "SUM(?)",
-						Args:  []any{supersaiyan.F("amount", "o")},
+						Args:  []any{supersaiyan.Field{Name: "amount", TableAlias: "o"}},
 					},
 				},
 			).
-			GroupByFields(supersaiyan.F("user_id", "o")).
+			GroupByFields(supersaiyan.Field{Name: "user_id", TableAlias: "o"}).
 			Limit(0)
 
 		assert.Len(t, qb.GroupBy, 1)
@@ -277,11 +277,11 @@ func TestGroupByFields(t *testing.T) {
 	t.Run("chains multiple GroupByFields calls", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "orders", "o").
 			WithFields(
-				supersaiyan.F("user_id", "o"),
-				supersaiyan.F("status", "o"),
+				supersaiyan.Field{Name: "user_id", TableAlias: "o"},
+				supersaiyan.Field{Name: "status", TableAlias: "o"},
 			).
-			GroupByFields(supersaiyan.F("user_id", "o")).
-			GroupByFields(supersaiyan.F("status", "o")).
+			GroupByFields(supersaiyan.Field{Name: "user_id", TableAlias: "o"}).
+			GroupByFields(supersaiyan.Field{Name: "status", TableAlias: "o"}).
 			Limit(0)
 
 		assert.Len(t, qb.GroupBy, 2)
@@ -296,7 +296,7 @@ func TestGroupByFields(t *testing.T) {
 func TestJoin(t *testing.T) {
 	t.Run("adds inner join", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
-			InnerJoin("orders", "o", supersaiyan.Eq("user_id", "o", supersaiyan.F("id", "u"))).
+			InnerJoin("orders", "o", supersaiyan.Eq("user_id", "o", supersaiyan.Field{Name: "id", TableAlias: "u"})).
 			Limit(0)
 
 		assert.Len(t, qb.Table.Relations, 1)
@@ -310,7 +310,7 @@ func TestJoin(t *testing.T) {
 
 	t.Run("adds left join", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
-			LeftJoin("profiles", "p", supersaiyan.Eq("user_id", "p", supersaiyan.F("id", "u"))).
+			LeftJoin("profiles", "p", supersaiyan.Eq("user_id", "p", supersaiyan.Field{Name: "id", TableAlias: "u"})).
 			Limit(0)
 
 		assert.Len(t, qb.Table.Relations, 1)
@@ -324,7 +324,7 @@ func TestJoin(t *testing.T) {
 
 	t.Run("adds right join", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
-			RightJoin("departments", "d", supersaiyan.Eq("id", "d", supersaiyan.F("department_id", "u"))).
+			RightJoin("departments", "d", supersaiyan.Eq("id", "d", supersaiyan.Field{Name: "department_id", TableAlias: "u"})).
 			Limit(0)
 
 		assert.Len(t, qb.Table.Relations, 1)
@@ -338,8 +338,8 @@ func TestJoin(t *testing.T) {
 
 	t.Run("chains multiple joins", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
-			InnerJoin("orders", "o", supersaiyan.Eq("user_id", "o", supersaiyan.F("id", "u"))).
-			LeftJoin("profiles", "p", supersaiyan.Eq("user_id", "p", supersaiyan.F("id", "u"))).
+			InnerJoin("orders", "o", supersaiyan.Eq("user_id", "o", supersaiyan.Field{Name: "id", TableAlias: "u"})).
+			LeftJoin("profiles", "p", supersaiyan.Eq("user_id", "p", supersaiyan.Field{Name: "id", TableAlias: "u"})).
 			Limit(0)
 
 		assert.Len(t, qb.Table.Relations, 2)
@@ -458,12 +458,12 @@ func TestComplexChaining(t *testing.T) {
 	t.Run("full query with all chaining methods", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
 			WithFields(
-				supersaiyan.F("id", "u"),
-				supersaiyan.F("username", "u"),
-				supersaiyan.F("email", "u"),
+				supersaiyan.Field{Name: "id", TableAlias: "u"},
+				supersaiyan.Field{Name: "username", TableAlias: "u"},
+				supersaiyan.Field{Name: "email", TableAlias: "u"},
 			).
-			InnerJoin("orders", "o", supersaiyan.Eq("user_id", "o", supersaiyan.F("id", "u"))).
-			LeftJoin("profiles", "p", supersaiyan.Eq("user_id", "p", supersaiyan.F("id", "u"))).
+			InnerJoin("orders", "o", supersaiyan.Eq("user_id", "o", supersaiyan.Field{Name: "id", TableAlias: "u"})).
+			LeftJoin("profiles", "p", supersaiyan.Eq("user_id", "p", supersaiyan.Field{Name: "id", TableAlias: "u"})).
 			Where(
 				supersaiyan.Eq("status", "u", "active"),
 				supersaiyan.Gt("age", "u", 18),
@@ -499,24 +499,24 @@ func TestComplexChaining(t *testing.T) {
 	t.Run("query with aggregation and grouping", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "orders", "o").
 			WithFields(
-				supersaiyan.F("user_id", "o"),
+				supersaiyan.Field{Name: "user_id", TableAlias: "o"},
 				supersaiyan.Field{
 					FieldAlias: "order_count",
 					Exp: supersaiyan.Literal{
 						Value: "COUNT(?)",
-						Args:  []any{supersaiyan.F("id", "o")},
+						Args:  []any{supersaiyan.Field{Name: "id", TableAlias: "o"}},
 					},
 				},
 				supersaiyan.Field{
 					FieldAlias: "total_amount",
 					Exp: supersaiyan.Literal{
 						Value: "SUM(?)",
-						Args:  []any{supersaiyan.F("amount", "o")},
+						Args:  []any{supersaiyan.Field{Name: "amount", TableAlias: "o"}},
 					},
 				},
 			).
 			Where(supersaiyan.Eq("status", "o", "completed")).
-			GroupByFields(supersaiyan.F("user_id", "o")).
+			GroupByFields(supersaiyan.Field{Name: "user_id", TableAlias: "o"}).
 			OrderBy(supersaiyan.Desc("total_amount", "")).
 			Limit(10)
 
@@ -540,8 +540,8 @@ func TestComplexChaining(t *testing.T) {
 	t.Run("query with case expression", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u").
 			WithFields(
-				supersaiyan.F("id", "u"),
-				supersaiyan.F("username", "u"),
+				supersaiyan.Field{Name: "id", TableAlias: "u"},
+				supersaiyan.Field{Name: "username", TableAlias: "u"},
 				supersaiyan.Field{
 					FieldAlias: "status_label",
 					Exp: supersaiyan.Case{
@@ -578,7 +578,7 @@ func TestMethodChaining(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u")
 
 		// Test that each method returns *SQLBuilder
-		qb2 := qb.WithFields(supersaiyan.F("id", "u"))
+		qb2 := qb.WithFields(supersaiyan.Field{Name: "id", TableAlias: "u"})
 		assert.Equal(t, qb, qb2)
 
 		qb3 := qb.Where(supersaiyan.Eq("status", "u", "active"))
@@ -587,10 +587,10 @@ func TestMethodChaining(t *testing.T) {
 		qb4 := qb.OrderBy(supersaiyan.Asc("id", "u"))
 		assert.Equal(t, qb, qb4)
 
-		qb5 := qb.GroupByFields(supersaiyan.F("id", "u"))
+		qb5 := qb.GroupByFields(supersaiyan.Field{Name: "id", TableAlias: "u"})
 		assert.Equal(t, qb, qb5)
 
-		qb6 := qb.InnerJoin("orders", "o", supersaiyan.Eq("user_id", "o", supersaiyan.F("id", "u")))
+		qb6 := qb.InnerJoin("orders", "o", supersaiyan.Eq("user_id", "o", supersaiyan.Field{Name: "id", TableAlias: "u"}))
 		assert.Equal(t, qb, qb6)
 
 		qb7 := qb.Limit(10)
@@ -605,7 +605,7 @@ func TestMethodChaining(t *testing.T) {
 		qb1 := supersaiyan.New("mysql", "users", "u").
 			Limit(10).
 			Where(supersaiyan.Eq("status", "u", "active")).
-			WithFields(supersaiyan.F("id", "u")).
+			WithFields(supersaiyan.Field{Name: "id", TableAlias: "u"}).
 			OrderBy(supersaiyan.Asc("id", "u"))
 
 		sql1, _, err1 := qb1.Select()
@@ -613,7 +613,7 @@ func TestMethodChaining(t *testing.T) {
 
 		// Order 2 (different order, same result)
 		qb2 := supersaiyan.New("mysql", "users", "u").
-			WithFields(supersaiyan.F("id", "u")).
+			WithFields(supersaiyan.Field{Name: "id", TableAlias: "u"}).
 			OrderBy(supersaiyan.Asc("id", "u")).
 			Where(supersaiyan.Eq("status", "u", "active")).
 			Limit(10)
@@ -630,7 +630,7 @@ func TestMethodChaining(t *testing.T) {
 func TestBuilderImmutability(t *testing.T) {
 	t.Run("chaining doesn't create new instances", func(t *testing.T) {
 		qb1 := supersaiyan.New("mysql", "users", "u")
-		qb2 := qb1.WithFields(supersaiyan.F("id", "u"))
+		qb2 := qb1.WithFields(supersaiyan.Field{Name: "id", TableAlias: "u"})
 
 		// Should be the same instance
 		assert.Equal(t, qb1, qb2)
@@ -643,7 +643,7 @@ func TestBuilderImmutability(t *testing.T) {
 	t.Run("multiple chains affect same builder", func(t *testing.T) {
 		qb := supersaiyan.New("mysql", "users", "u")
 
-		qb.WithFields(supersaiyan.F("id", "u"))
+		qb.WithFields(supersaiyan.Field{Name: "id", TableAlias: "u"})
 		qb.Where(supersaiyan.Eq("status", "u", "active"))
 		qb.OrderBy(supersaiyan.Asc("id", "u"))
 
@@ -690,5 +690,312 @@ func TestEdgeCases(t *testing.T) {
 		sql, _, err := qb.Select()
 		require.NoError(t, err)
 		assert.NotContains(t, sql, "GROUP BY")
+	})
+}
+
+// TestFieldHelpers tests the F() and Exp() helper functions
+func TestFieldHelpers(t *testing.T) {
+	t.Run("F creates simple field without alias", func(t *testing.T) {
+		field := supersaiyan.F("username", supersaiyan.WithTable("u"))
+
+		assert.Equal(t, "username", field.Name)
+		assert.Equal(t, "u", field.TableAlias)
+		assert.Empty(t, field.FieldAlias)
+		assert.Nil(t, field.Exp)
+	})
+
+	t.Run("F creates field with alias", func(t *testing.T) {
+		field := supersaiyan.F("created_at", supersaiyan.WithTable("u"), supersaiyan.WithAlias("registration_date"))
+
+		assert.Equal(t, "created_at", field.Name)
+		assert.Equal(t, "u", field.TableAlias)
+		assert.Equal(t, "registration_date", field.FieldAlias)
+		assert.Nil(t, field.Exp)
+	})
+
+	t.Run("F ignores empty alias", func(t *testing.T) {
+		field := supersaiyan.F("username", supersaiyan.WithTable("u"), supersaiyan.WithAlias(""))
+
+		assert.Equal(t, "username", field.Name)
+		assert.Equal(t, "u", field.TableAlias)
+		assert.Empty(t, field.FieldAlias)
+		assert.Nil(t, field.Exp)
+	})
+
+	t.Run("F creates field without table alias", func(t *testing.T) {
+		field := supersaiyan.F("username")
+
+		assert.Equal(t, "username", field.Name)
+		assert.Empty(t, field.TableAlias)
+		assert.Empty(t, field.FieldAlias)
+		assert.Nil(t, field.Exp)
+	})
+
+	t.Run("F creates field with only field alias (no table alias)", func(t *testing.T) {
+		field := supersaiyan.F("username", supersaiyan.WithAlias("user_name"))
+
+		assert.Equal(t, "username", field.Name)
+		assert.Empty(t, field.TableAlias)
+		assert.Equal(t, "user_name", field.FieldAlias)
+		assert.Nil(t, field.Exp)
+	})
+
+	t.Run("Exp creates expression field with COUNT", func(t *testing.T) {
+		field := supersaiyan.Exp("order_count", supersaiyan.Literal{
+			Value: "COUNT(?)",
+			Args:  []any{supersaiyan.F("id", supersaiyan.WithTable("o"))},
+		})
+
+		assert.Empty(t, field.Name)
+		assert.Empty(t, field.TableAlias)
+		assert.Equal(t, "order_count", field.FieldAlias)
+		assert.NotNil(t, field.Exp)
+	})
+
+	t.Run("Exp creates expression field with SUM", func(t *testing.T) {
+		field := supersaiyan.Exp("total_amount", supersaiyan.Literal{
+			Value: "SUM(?)",
+			Args:  []any{supersaiyan.F("amount", supersaiyan.WithTable("o"))},
+		})
+
+		assert.Equal(t, "total_amount", field.FieldAlias)
+		assert.NotNil(t, field.Exp)
+	})
+
+	t.Run("Exp creates expression field with CASE", func(t *testing.T) {
+		caseExpr := supersaiyan.Case{
+			Conditions: []supersaiyan.WhenThen{
+				{
+					When: supersaiyan.Eq("status", "u", "active"),
+					Then: "Active",
+				},
+			},
+			Else: "Unknown",
+		}
+
+		field := supersaiyan.Exp("status_label", caseExpr)
+
+		assert.Equal(t, "status_label", field.FieldAlias)
+		assert.NotNil(t, field.Exp)
+	})
+
+	t.Run("Exp creates expression field with COALESCE", func(t *testing.T) {
+		coalesceExpr := supersaiyan.Coalesce{
+			Fields: []supersaiyan.Field{
+				supersaiyan.F("nickname", supersaiyan.WithTable("u")),
+				supersaiyan.F("username", supersaiyan.WithTable("u")),
+			},
+			DefaultValue: "Anonymous",
+		}
+
+		field := supersaiyan.Exp("display_name", coalesceExpr)
+
+		assert.Equal(t, "display_name", field.FieldAlias)
+		assert.NotNil(t, field.Exp)
+	})
+}
+
+// TestFieldHelpersInQueries tests F() and Exp() in actual queries
+func TestFieldHelpersInQueries(t *testing.T) {
+	t.Run("query with aliased field using F()", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "users", "u").
+			WithFields(
+				supersaiyan.F("id", supersaiyan.WithTable("u")),
+				supersaiyan.F("created_at", supersaiyan.WithTable("u"), supersaiyan.WithAlias("reg_date")),
+			).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "created_at")
+		assert.Contains(t, sql, "reg_date")
+	})
+
+	t.Run("query with expression field using Exp()", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "orders", "o").
+			WithFields(
+				supersaiyan.F("user_id", supersaiyan.WithTable("o")),
+				supersaiyan.Exp("order_count", supersaiyan.Literal{
+					Value: "COUNT(?)",
+					Args:  []any{supersaiyan.F("id", supersaiyan.WithTable("o"))},
+				}),
+			).
+			GroupByFields(supersaiyan.F("user_id", supersaiyan.WithTable("o"))).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "COUNT")
+		assert.Contains(t, sql, "order_count")
+		assert.Contains(t, sql, "GROUP BY")
+	})
+
+	t.Run("query with CASE expression using Exp()", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "users", "u").
+			WithFields(
+				supersaiyan.F("id", supersaiyan.WithTable("u")),
+				supersaiyan.F("username", supersaiyan.WithTable("u")),
+				supersaiyan.Exp("status_label", supersaiyan.Case{
+					Conditions: []supersaiyan.WhenThen{
+						{
+							When: supersaiyan.Eq("status", "u", "active"),
+							Then: "Active User",
+						},
+						{
+							When: supersaiyan.Eq("status", "u", "inactive"),
+							Then: "Inactive User",
+						},
+					},
+					Else: "Unknown",
+				}),
+			).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "CASE")
+		assert.Contains(t, sql, "WHEN")
+		assert.Contains(t, sql, "status_label")
+	})
+
+	t.Run("query with COALESCE using Exp()", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "users", "u").
+			WithFields(
+				supersaiyan.F("id", supersaiyan.WithTable("u")),
+				supersaiyan.Exp("display_name", supersaiyan.Coalesce{
+					Fields: []supersaiyan.Field{
+						supersaiyan.F("nickname", supersaiyan.WithTable("u")),
+						supersaiyan.F("username", supersaiyan.WithTable("u")),
+						supersaiyan.F("email", supersaiyan.WithTable("u")),
+					},
+					DefaultValue: "Anonymous",
+				}),
+			).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "COALESCE")
+		assert.Contains(t, sql, "display_name")
+	})
+
+	t.Run("complex query with multiple aggregations", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "orders", "o").
+			WithFields(
+				supersaiyan.F("user_id", supersaiyan.WithTable("o")),
+				supersaiyan.F("status", supersaiyan.WithTable("o")),
+				supersaiyan.Exp("order_count", supersaiyan.Literal{
+					Value: "COUNT(?)",
+					Args:  []any{supersaiyan.F("id", supersaiyan.WithTable("o"))},
+				}),
+				supersaiyan.Exp("total_amount", supersaiyan.Literal{
+					Value: "SUM(?)",
+					Args:  []any{supersaiyan.F("amount", supersaiyan.WithTable("o"))},
+				}),
+				supersaiyan.Exp("avg_amount", supersaiyan.Literal{
+					Value: "AVG(?)",
+					Args:  []any{supersaiyan.F("amount", supersaiyan.WithTable("o"))},
+				}),
+			).
+			Where(supersaiyan.Eq("status", "o", "completed")).
+			GroupByFields(
+				supersaiyan.F("user_id", supersaiyan.WithTable("o")),
+				supersaiyan.F("status", supersaiyan.WithTable("o")),
+			).
+			OrderBy(supersaiyan.Desc("total_amount", "")).
+			Limit(10)
+
+		sql, args, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "COUNT")
+		assert.Contains(t, sql, "SUM")
+		assert.Contains(t, sql, "AVG")
+		assert.Contains(t, sql, "order_count")
+		assert.Contains(t, sql, "total_amount")
+		assert.Contains(t, sql, "avg_amount")
+		assert.Contains(t, sql, "GROUP BY")
+		assert.NotEmpty(t, args)
+	})
+
+	t.Run("multiple fields with and without aliases", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "users", "u").
+			WithFields(
+				supersaiyan.F("id", supersaiyan.WithTable("u")),
+				supersaiyan.F("username", supersaiyan.WithTable("u")),
+				supersaiyan.F("created_at", supersaiyan.WithTable("u"), supersaiyan.WithAlias("reg_date")),
+				supersaiyan.F("updated_at", supersaiyan.WithTable("u"), supersaiyan.WithAlias("mod_date")),
+			).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "id")
+		assert.Contains(t, sql, "username")
+		assert.Contains(t, sql, "reg_date")
+		assert.Contains(t, sql, "mod_date")
+	})
+}
+
+// TestFieldStructBackwardCompatibility tests that Field struct still works
+func TestFieldStructBackwardCompatibility(t *testing.T) {
+	t.Run("Field struct with name and table alias", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "users", "u").
+			WithFields(
+				supersaiyan.Field{
+					Name:       "id",
+					TableAlias: "u",
+				},
+				supersaiyan.Field{
+					Name:       "username",
+					TableAlias: "u",
+				},
+			).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "id")
+		assert.Contains(t, sql, "username")
+	})
+
+	t.Run("Field struct with expression", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "orders", "o").
+			WithFields(
+				supersaiyan.Field{
+					Name:       "user_id",
+					TableAlias: "o",
+				},
+				supersaiyan.Field{
+					FieldAlias: "total",
+					Exp: supersaiyan.Literal{
+						Value: "SUM(?)",
+						Args:  []any{supersaiyan.F("amount", supersaiyan.WithTable("o"))},
+					},
+				},
+			).
+			GroupByFields(supersaiyan.F("user_id", supersaiyan.WithTable("o"))).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "SUM")
+		assert.Contains(t, sql, "total")
+	})
+
+	t.Run("Field struct with alias", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "users", "u").
+			WithFields(
+				supersaiyan.Field{
+					Name:       "created_at",
+					TableAlias: "u",
+					FieldAlias: "registration_date",
+				},
+			).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "created_at")
+		assert.Contains(t, sql, "registration_date")
 	})
 }

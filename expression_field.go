@@ -117,10 +117,52 @@ func (f *Field) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-// F creates a Field reference.
-func F(name, tableAlias string) Field {
+// FieldOption is a functional option for configuring a Field.
+type FieldOption func(*Field)
+
+// WithTable sets the table alias for a field.
+func WithTable(tableAlias string) FieldOption {
+	return func(f *Field) {
+		f.TableAlias = tableAlias
+	}
+}
+
+// WithAlias sets the field alias for a field.
+func WithAlias(fieldAlias string) FieldOption {
+	return func(f *Field) {
+		f.FieldAlias = fieldAlias
+	}
+}
+
+// F creates a Field reference with optional configuration.
+// 
+// Examples:
+//   F("id")                                    // Simple field without table alias
+//   F("id", WithTable("u"))                    // Field with table alias
+//   F("created_at", WithTable("u"), WithAlias("reg_date")) // Field with table and field alias
+//   F("name", WithAlias("full_name"))          // Field with field alias but no table alias
+func F(name string, opts ...FieldOption) Field {
+	f := Field{
+		Name: name,
+	}
+	
+	for _, opt := range opts {
+		opt(&f)
+	}
+	
+	return f
+}
+
+// Exp creates a Field with an expression and alias.
+// This is a convenience function for creating computed/aggregate fields.
+//
+// Examples:
+//   Exp("order_count", Literal{Value: "COUNT(?)", Args: []any{F("id", "o")}})
+//   Exp("total", Literal{Value: "SUM(?)", Args: []any{F("amount", "o")}})
+//   Exp("status_label", Case{...})
+func Exp(alias string, expression any) Field {
 	return Field{
-		Name:       name,
-		TableAlias: tableAlias,
+		FieldAlias: alias,
+		Exp:        expression,
 	}
 }

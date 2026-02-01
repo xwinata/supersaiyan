@@ -664,7 +664,7 @@ func TestMarshal_SQLBuilder(t *testing.T) {
 		original := supersaiyan.New("postgres", "orders", "o").
 			WithFields(supersaiyan.Field{Name: "id", TableAlias: "o"}).
 			WithFields(supersaiyan.Field{Name: "customer_name", TableAlias: "c"}).
-			InnerJoin("customers", "c", supersaiyan.Eq("id", "c", supersaiyan.F("customer_id", "o"))).
+			InnerJoin("customers", "c", supersaiyan.Eq("id", "c", supersaiyan.F("customer_id", supersaiyan.WithTable("o")))).
 			Where(supersaiyan.Eq("status", "o", "completed")).
 			Limit(0)
 
@@ -743,7 +743,7 @@ func TestMarshal_SQLBuilder(t *testing.T) {
 				FieldAlias: "total",
 				Exp: supersaiyan.Literal{
 					Value: "SUM(?)",
-					Args:  []any{supersaiyan.F("amount", "o")},
+					Args:  []any{supersaiyan.F("amount", supersaiyan.WithTable("o"))},
 				},
 			}).
 			Limit(0)
@@ -834,7 +834,7 @@ func TestMarshal_RangeOp(t *testing.T) {
 // TestMarshal_Field tests marshaling of Field
 func TestMarshal_Field(t *testing.T) {
 	t.Run("marshal simple field", func(t *testing.T) {
-		field := supersaiyan.F("username", "u")
+		field := supersaiyan.F("username", supersaiyan.WithTable("u"))
 
 		jsonData, err := json.Marshal(field)
 		require.NoError(t, err)
