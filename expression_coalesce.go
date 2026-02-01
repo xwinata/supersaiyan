@@ -30,9 +30,10 @@ func (co Coalesce) expression() exp.SQLFunctionExpression {
 // Returns the first non-NULL value from the provided fields, or the default if all are NULL.
 //
 // Examples:
-//   Coal(nil, F("nickname", WithTable("u")), F("username", WithTable("u")))
-//   Coal("Anonymous", F("nickname", WithTable("u")), F("username", WithTable("u")))
-//   Coal("N/A", F("phone", WithTable("u")), F("email", WithTable("u")))
+//
+//	Coal(nil, F("nickname", WithTable("u")), F("username", WithTable("u")))
+//	Coal("Anonymous", F("nickname", WithTable("u")), F("username", WithTable("u")))
+//	Coal("N/A", F("phone", WithTable("u")), F("email", WithTable("u")))
 func Coal(defaultValue any, fields ...Field) Coalesce {
 	return Coalesce{
 		Fields:       fields,

@@ -741,7 +741,10 @@ func TestMarshal_SQLBuilder(t *testing.T) {
 		original := supersaiyan.New("mysql", "orders", "o").
 			WithFields(supersaiyan.Field{
 				FieldAlias: "total",
-				Exp:        supersaiyan.L("SUM(?)", supersaiyan.F("amount", supersaiyan.WithTable("o"))),
+				Exp: supersaiyan.L(
+					"SUM(?)",
+					supersaiyan.F("amount", supersaiyan.WithTable("o")),
+				),
 			}).
 			Limit(0)
 
@@ -1116,5 +1119,273 @@ groupBy:
 		require.NoError(t, err)
 		assert.NotEmpty(t, sql)
 		assert.NotNil(t, args)
+	})
+}
+
+// TestUnmarshal_EdgeCases tests edge cases in unmarshaling
+func TestUnmarshal_EdgeCases(t *testing.T) {
+	t.Run("unmarshal case with simple value in else", func(t *testing.T) {
+		jsonStr := `{
+			"conditions": [
+				{"when": {"op": "eq", "fieldName": "status", "value": "active"}, "then": "Active"}
+			],
+			"else": "Unknown"
+		}`
+		var caseExpr supersaiyan.Case
+		err := json.Unmarshal([]byte(jsonStr), &caseExpr)
+		require.NoError(t, err)
+		assert.Equal(t, "Unknown", caseExpr.Else)
+	})
+
+	t.Run("unmarshal case with expression in when", func(t *testing.T) {
+		jsonStr := `{
+			"conditions": [
+				{"when": {"name": "status", "tableAlias": "u"}, "then": "Active"}
+			]
+		}`
+		var caseExpr supersaiyan.Case
+		err := json.Unmarshal([]byte(jsonStr), &caseExpr)
+		require.NoError(t, err)
+		assert.Len(t, caseExpr.Conditions, 1)
+	})
+
+	t.Run("unmarshal case with simple value in when", func(t *testing.T) {
+		jsonStr := `{
+			"conditions": [
+				{"when": true, "then": "Yes"}
+			]
+		}`
+		var caseExpr supersaiyan.Case
+		err := json.Unmarshal([]byte(jsonStr), &caseExpr)
+		require.NoError(t, err)
+		assert.Len(t, caseExpr.Conditions, 1)
+	})
+
+	t.Run("unmarshal literal with field args", func(t *testing.T) {
+		jsonStr := `{
+			"value": "COUNT(?)",
+			"args": [{"name": "id", "tableAlias": "o"}]
+		}`
+		var literal supersaiyan.Literal
+		err := json.Unmarshal([]byte(jsonStr), &literal)
+		require.NoError(t, err)
+		assert.Equal(t, "COUNT(?)", literal.Value)
+		assert.Len(t, literal.Args, 1)
+	})
+
+	t.Run("unmarshal literal with mixed args", func(t *testing.T) {
+		jsonStr := `{
+			"value": "CONCAT(?, ' - ', ?)",
+			"args": ["Hello", {"name": "name", "tableAlias": "u"}]
+		}`
+		var literal supersaiyan.Literal
+		err := json.Unmarshal([]byte(jsonStr), &literal)
+		require.NoError(t, err)
+		assert.Len(t, literal.Args, 2)
+	})
+
+	t.Run("unmarshal field with literal expression", func(t *testing.T) {
+		jsonStr := `{
+			"name": "total",
+			"exp": {"value": "SUM(?)", "args": [{"name": "amount"}]}
+		}`
+		var field supersaiyan.Field
+		err := json.Unmarshal([]byte(jsonStr), &field)
+		require.NoError(t, err)
+		assert.Equal(t, "total", field.Name)
+		assert.NotNil(t, field.Exp)
+	})
+
+	t.Run("unmarshal field from YAML with expression", func(t *testing.T) {
+		yamlStr := `name: total
+exp:
+  value: "SUM(?)"
+  args:
+    - name: amount`
+		var field supersaiyan.Field
+		err := yaml.Unmarshal([]byte(yamlStr), &field)
+		require.NoError(t, err)
+		assert.Equal(t, "total", field.Name)
+		assert.NotNil(t, field.Exp)
+	})
+
+	t.Run("unmarshal WhereGroup with unknown type defaults to AND", func(t *testing.T) {
+		jsonStr := `{"op":"unknown","conditions":[{"op":"eq","fieldName":"status","value":"active"}]}`
+		var wg supersaiyan.WhereGroup
+		err := json.Unmarshal([]byte(jsonStr), &wg)
+		require.NoError(t, err)
+		assert.Len(t, wg.Conditions, 1)
+	})
+
+	t.Run("unmarshal sort with unknown defaults to ASC", func(t *testing.T) {
+		jsonStr := `{"name":"name","tableAlias":"u","order":"unknown"}`
+		var sort supersaiyan.Sort
+		err := json.Unmarshal([]byte(jsonStr), &sort)
+		require.NoError(t, err)
+		assert.Equal(t, "name", sort.Name)
+	})
+
+	t.Run("unmarshal relation with unknown join type defaults to inner", func(t *testing.T) {
+		jsonStr := `{"joinType":"unknown","on":[{"op":"eq","fieldName":"user_id","value":"1"}],"table":{"name":"orders","alias":"o"}}`
+		var relation supersaiyan.Relation
+		err := json.Unmarshal([]byte(jsonStr), &relation)
+		require.NoError(t, err)
+		assert.Equal(t, "orders", relation.Table.Name)
+	})
+
+	t.Run("unmarshal relation from YAML", func(t *testing.T) {
+		yamlStr := `joinType: left
+table:
+  name: orders
+  alias: o`
+		var relation supersaiyan.Relation
+		err := yaml.Unmarshal([]byte(yamlStr), &relation)
+		require.NoError(t, err)
+		assert.Equal(t, "orders", relation.Table.Name)
+	})
+}
+
+// TestMarshal_AllOperations tests marshaling of all operation types
+func TestMarshal_AllOperations(t *testing.T) {
+	t.Run("marshal BoolOp with all operations", func(t *testing.T) {
+		operations := []struct {
+			op   exp.BooleanOperation
+			name string
+		}{
+			{exp.EqOp, "eq"},
+			{exp.NeqOp, "neq"},
+			{exp.IsOp, "is"},
+			{exp.IsNotOp, "isNot"},
+			{exp.GtOp, "gt"},
+			{exp.GteOp, "gte"},
+			{exp.LtOp, "lt"},
+			{exp.LteOp, "lte"},
+			{exp.InOp, "in"},
+			{exp.NotInOp, "notIn"},
+			{exp.LikeOp, "like"},
+			{exp.NotLikeOp, "notLike"},
+			{exp.ILikeOp, "iLike"},
+			{exp.NotILikeOp, "notILike"},
+		}
+
+		for _, op := range operations {
+			t.Run(op.name, func(t *testing.T) {
+				boolOp := supersaiyan.BoolOp{
+					Op:         op.op,
+					FieldName:  "test",
+					TableAlias: "t",
+					Value:      "value",
+				}
+
+				data, err := json.Marshal(boolOp)
+				require.NoError(t, err)
+				assert.Contains(t, string(data), op.name)
+			})
+		}
+	})
+
+	t.Run("marshal RangeOp", func(t *testing.T) {
+		rangeOp := supersaiyan.Between("age", "u", 18, 65)
+		data, err := json.Marshal(rangeOp)
+		require.NoError(t, err)
+		assert.Contains(t, string(data), "between")
+
+		rangeOp2 := supersaiyan.NotBetween("price", "p", 100, 1000)
+		data2, err := json.Marshal(rangeOp2)
+		require.NoError(t, err)
+		assert.Contains(t, string(data2), "notBetween")
+	})
+
+	t.Run("marshal WhereGroup with AND", func(t *testing.T) {
+		wg := supersaiyan.And(
+			supersaiyan.Eq("status", "u", "active"),
+			supersaiyan.Gt("age", "u", 18),
+		)
+
+		data, err := json.Marshal(wg)
+		require.NoError(t, err)
+		assert.Contains(t, string(data), "AND")
+	})
+
+	t.Run("marshal WhereGroup with OR", func(t *testing.T) {
+		wg := supersaiyan.Or(
+			supersaiyan.Eq("role", "u", "admin"),
+			supersaiyan.Eq("role", "u", "moderator"),
+		)
+
+		data, err := json.Marshal(wg)
+		require.NoError(t, err)
+		assert.Contains(t, string(data), "OR")
+	})
+
+	t.Run("marshal sort with ASC", func(t *testing.T) {
+		sort := supersaiyan.Asc("name", "u")
+		data, err := json.Marshal(sort)
+		require.NoError(t, err)
+		assert.Contains(t, string(data), "ASC")
+	})
+
+	t.Run("marshal sort with DESC", func(t *testing.T) {
+		sort := supersaiyan.Desc("created_at", "u")
+		data, err := json.Marshal(sort)
+		require.NoError(t, err)
+		assert.Contains(t, string(data), "DESC")
+	})
+
+	t.Run("marshal sort to YAML", func(t *testing.T) {
+		sort := supersaiyan.Desc("created_at", "u")
+		data, err := yaml.Marshal(sort)
+		require.NoError(t, err)
+		assert.Contains(t, string(data), "DESC")
+	})
+
+	t.Run("marshal relation with all join types", func(t *testing.T) {
+		joinTypes := []struct {
+			joinType exp.JoinType
+			name     string
+		}{
+			{exp.InnerJoinType, "INNER"},
+			{exp.LeftJoinType, "LEFT"},
+			{exp.RightJoinType, "RIGHT"},
+			{exp.FullOuterJoinType, "FULL"},
+			{exp.CrossJoinType, "CROSS"},
+		}
+
+		for _, jt := range joinTypes {
+			t.Run(jt.name, func(t *testing.T) {
+				relation := supersaiyan.Relation{
+					JoinType: jt.joinType,
+					On: []any{
+						supersaiyan.Eq(
+							"user_id",
+							"o",
+							supersaiyan.F("id", supersaiyan.WithTable("u")),
+						),
+					},
+					Table: supersaiyan.Table{
+						Name:  "orders",
+						Alias: "o",
+					},
+				}
+
+				data, err := json.Marshal(relation)
+				require.NoError(t, err)
+				assert.Contains(t, string(data), jt.name)
+			})
+		}
+	})
+
+	t.Run("marshal relation to YAML", func(t *testing.T) {
+		relation := supersaiyan.Relation{
+			JoinType: exp.LeftJoinType,
+			Table: supersaiyan.Table{
+				Name:  "orders",
+				Alias: "o",
+			},
+		}
+
+		data, err := yaml.Marshal(relation)
+		require.NoError(t, err)
+		assert.Contains(t, string(data), "LEFT")
 	})
 }

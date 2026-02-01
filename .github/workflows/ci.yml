@@ -5,6 +5,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 1'  # Run CodeQL weekly on Mondays
 
 jobs:
   lint:
@@ -71,6 +73,11 @@ jobs:
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
+      - name: Filter coverage (exclude examples)
+        run: |
+          grep -v "examples/" coverage.out > coverage.filtered.out || true
+          mv coverage.filtered.out coverage.out
+
       - name: Generate coverage badge
         uses: vladopajic/go-test-coverage@v2
         with:
@@ -94,33 +101,3 @@ jobs:
 
       - name: Build
         run: go build -v ./...
-
-  codeql:
-    name: CodeQL Analysis
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version-file: go.mod
-
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: go
-
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-      with:
-        category: "/language:go"

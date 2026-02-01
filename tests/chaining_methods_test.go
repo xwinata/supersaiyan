@@ -590,7 +590,11 @@ func TestMethodChaining(t *testing.T) {
 		qb5 := qb.GroupByFields(supersaiyan.Field{Name: "id", TableAlias: "u"})
 		assert.Equal(t, qb, qb5)
 
-		qb6 := qb.InnerJoin("orders", "o", supersaiyan.Eq("user_id", "o", supersaiyan.Field{Name: "id", TableAlias: "u"}))
+		qb6 := qb.InnerJoin(
+			"orders",
+			"o",
+			supersaiyan.Eq("user_id", "o", supersaiyan.Field{Name: "id", TableAlias: "u"}),
+		)
 		assert.Equal(t, qb, qb6)
 
 		qb7 := qb.Limit(10)
@@ -705,7 +709,11 @@ func TestFieldHelpers(t *testing.T) {
 	})
 
 	t.Run("F creates field with alias", func(t *testing.T) {
-		field := supersaiyan.F("created_at", supersaiyan.WithTable("u"), supersaiyan.WithAlias("registration_date"))
+		field := supersaiyan.F(
+			"created_at",
+			supersaiyan.WithTable("u"),
+			supersaiyan.WithAlias("registration_date"),
+		)
 
 		assert.Equal(t, "created_at", field.Name)
 		assert.Equal(t, "u", field.TableAlias)
@@ -741,7 +749,10 @@ func TestFieldHelpers(t *testing.T) {
 	})
 
 	t.Run("Exp creates expression field with COUNT", func(t *testing.T) {
-		field := supersaiyan.Exp("order_count", supersaiyan.L("COUNT(?)", supersaiyan.F("id", supersaiyan.WithTable("o"))))
+		field := supersaiyan.Exp(
+			"order_count",
+			supersaiyan.L("COUNT(?)", supersaiyan.F("id", supersaiyan.WithTable("o"))),
+		)
 
 		assert.Empty(t, field.Name)
 		assert.Empty(t, field.TableAlias)
@@ -750,7 +761,10 @@ func TestFieldHelpers(t *testing.T) {
 	})
 
 	t.Run("Exp creates expression field with SUM", func(t *testing.T) {
-		field := supersaiyan.Exp("total_amount", supersaiyan.L("SUM(?)", supersaiyan.F("amount", supersaiyan.WithTable("o"))))
+		field := supersaiyan.Exp(
+			"total_amount",
+			supersaiyan.L("SUM(?)", supersaiyan.F("amount", supersaiyan.WithTable("o"))),
+		)
 
 		assert.Equal(t, "total_amount", field.FieldAlias)
 		assert.NotNil(t, field.Exp)
@@ -1015,7 +1029,10 @@ func TestFieldStructBackwardCompatibility(t *testing.T) {
 				},
 				supersaiyan.Field{
 					FieldAlias: "total",
-					Exp:        supersaiyan.L("SUM(?)", supersaiyan.F("amount", supersaiyan.WithTable("o"))),
+					Exp: supersaiyan.L(
+						"SUM(?)",
+						supersaiyan.F("amount", supersaiyan.WithTable("o")),
+					),
 				},
 			).
 			GroupByFields(supersaiyan.F("user_id", supersaiyan.WithTable("o"))).
@@ -1042,5 +1059,189 @@ func TestFieldStructBackwardCompatibility(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, sql, "created_at")
 		assert.Contains(t, sql, "registration_date")
+	})
+}
+
+// TestBoolOp_AdvancedOperations tests all boolean operations including regex and NOT LIKE
+func TestBoolOp_AdvancedOperations(t *testing.T) {
+	t.Run("IS operation", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "users", "u").
+			WithFields(supersaiyan.F("id", supersaiyan.WithTable("u"))).
+			Where(supersaiyan.BoolOp{
+				Op:         exp.IsOp,
+				FieldName:  "status",
+				TableAlias: "u",
+				Value:      nil,
+			}).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "IS")
+	})
+
+	t.Run("IS NOT operation", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "users", "u").
+			WithFields(supersaiyan.F("id", supersaiyan.WithTable("u"))).
+			Where(supersaiyan.BoolOp{
+				Op:         exp.IsNotOp,
+				FieldName:  "deleted_at",
+				TableAlias: "u",
+				Value:      nil,
+			}).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "IS NOT")
+	})
+
+	t.Run("NOT LIKE operation", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "users", "u").
+			WithFields(supersaiyan.F("id", supersaiyan.WithTable("u"))).
+			Where(supersaiyan.BoolOp{
+				Op:         exp.NotLikeOp,
+				FieldName:  "email",
+				TableAlias: "u",
+				Value:      "%spam%",
+			}).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "NOT LIKE")
+	})
+
+	t.Run("NOT ILIKE operation", func(t *testing.T) {
+		qb := supersaiyan.New("postgres", "users", "u").
+			WithFields(supersaiyan.F("id", supersaiyan.WithTable("u"))).
+			Where(supersaiyan.BoolOp{
+				Op:         exp.NotILikeOp,
+				FieldName:  "username",
+				TableAlias: "u",
+				Value:      "%admin%",
+			}).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "NOT ILIKE")
+	})
+
+	t.Run("REGEXP LIKE operation", func(t *testing.T) {
+		qb := supersaiyan.New("postgres", "users", "u").
+			WithFields(supersaiyan.F("id", supersaiyan.WithTable("u"))).
+			Where(supersaiyan.BoolOp{
+				Op:         exp.RegexpLikeOp,
+				FieldName:  "email",
+				TableAlias: "u",
+				Value:      "^[a-z]+@",
+			}).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "~")
+	})
+
+	t.Run("REGEXP NOT LIKE operation", func(t *testing.T) {
+		qb := supersaiyan.New("postgres", "users", "u").
+			WithFields(supersaiyan.F("id", supersaiyan.WithTable("u"))).
+			Where(supersaiyan.BoolOp{
+				Op:         exp.RegexpNotLikeOp,
+				FieldName:  "username",
+				TableAlias: "u",
+				Value:      "^test",
+			}).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "!~")
+	})
+
+	t.Run("REGEXP ILIKE operation", func(t *testing.T) {
+		qb := supersaiyan.New("postgres", "users", "u").
+			WithFields(supersaiyan.F("id", supersaiyan.WithTable("u"))).
+			Where(supersaiyan.BoolOp{
+				Op:         exp.RegexpILikeOp,
+				FieldName:  "name",
+				TableAlias: "u",
+				Value:      "^john",
+			}).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "~*")
+	})
+
+	t.Run("REGEXP NOT ILIKE operation", func(t *testing.T) {
+		qb := supersaiyan.New("postgres", "users", "u").
+			WithFields(supersaiyan.F("id", supersaiyan.WithTable("u"))).
+			Where(supersaiyan.BoolOp{
+				Op:         exp.RegexpNotILikeOp,
+				FieldName:  "name",
+				TableAlias: "u",
+				Value:      "^admin",
+			}).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "!~*")
+	})
+
+	t.Run("unknown operation returns nil", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "users", "u").
+			WithFields(supersaiyan.F("id", supersaiyan.WithTable("u"))).
+			Where(supersaiyan.BoolOp{
+				Op:         exp.BooleanOperation(999),
+				FieldName:  "status",
+				TableAlias: "u",
+				Value:      "active",
+			}).
+			Limit(0)
+
+		_, _, err := qb.Select()
+		require.NoError(t, err)
+	})
+}
+
+// TestField_AliasedExpression tests field aliasing with expressions
+func TestField_AliasedExpression(t *testing.T) {
+	t.Run("field with expression and alias", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "users", "u").
+			WithFields(
+				supersaiyan.Field{
+					FieldAlias: "user_count",
+					Exp:        supersaiyan.L("COUNT(*)"),
+				},
+			).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "COUNT(*)")
+		assert.Contains(t, sql, "user_count")
+	})
+
+	t.Run("field with name and expression", func(t *testing.T) {
+		qb := supersaiyan.New("mysql", "users", "u").
+			WithFields(
+				supersaiyan.Field{
+					Name: "total",
+					Exp: supersaiyan.L(
+						"SUM(?)",
+						supersaiyan.F("amount", supersaiyan.WithTable("o")),
+					),
+				},
+			).
+			Limit(0)
+
+		sql, _, err := qb.Select()
+		require.NoError(t, err)
+		assert.Contains(t, sql, "SUM")
+		assert.Contains(t, sql, "total")
 	})
 }

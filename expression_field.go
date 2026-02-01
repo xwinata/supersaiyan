@@ -135,21 +135,22 @@ func WithAlias(fieldAlias string) FieldOption {
 }
 
 // F creates a Field reference with optional configuration.
-// 
+//
 // Examples:
-//   F("id")                                    // Simple field without table alias
-//   F("id", WithTable("u"))                    // Field with table alias
-//   F("created_at", WithTable("u"), WithAlias("reg_date")) // Field with table and field alias
-//   F("name", WithAlias("full_name"))          // Field with field alias but no table alias
+//
+//	F("id")                                    // Simple field without table alias
+//	F("id", WithTable("u"))                    // Field with table alias
+//	F("created_at", WithTable("u"), WithAlias("reg_date")) // Field with table and field alias
+//	F("name", WithAlias("full_name"))          // Field with field alias but no table alias
 func F(name string, opts ...FieldOption) Field {
 	f := Field{
 		Name: name,
 	}
-	
+
 	for _, opt := range opts {
 		opt(&f)
 	}
-	
+
 	return f
 }
 
@@ -157,9 +158,10 @@ func F(name string, opts ...FieldOption) Field {
 // This is a convenience function for creating computed/aggregate fields.
 //
 // Examples:
-//   Exp("order_count", Literal{Value: "COUNT(?)", Args: []any{F("id", "o")}})
-//   Exp("total", Literal{Value: "SUM(?)", Args: []any{F("amount", "o")}})
-//   Exp("status_label", Case{...})
+//
+//	Exp("order_count", Literal{Value: "COUNT(?)", Args: []any{F("id", "o")}})
+//	Exp("total", Literal{Value: "SUM(?)", Args: []any{F("amount", "o")}})
+//	Exp("status_label", Case{...})
 func Exp(alias string, expression any) Field {
 	return Field{
 		FieldAlias: alias,
