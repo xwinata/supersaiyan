@@ -21,17 +21,6 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install golines
-        run: go install github.com/golangci/golines@latest
-
-      - name: Check line length with golines
-        run: |
-          golines --max-len=100 --dry-run --base-formatter="gofmt" .
-          if [ $? -ne 0 ]; then
-            echo "Lines exceed 100 characters. Run 'golines -w -m 100 .' to fix."
-            exit 1
-          fi
-
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:

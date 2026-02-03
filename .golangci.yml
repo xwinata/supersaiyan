@@ -4,9 +4,17 @@ run:
   timeout: 5m
   modules-download-mode: readonly
 
+formatters:
+  enable:
+    - gofmt
+    - golines
+    - goimports
+
 linters:
   enable:
     - govet
     - staticcheck
+    - ineffassign
+    - unused
   disable:
     - errcheck
